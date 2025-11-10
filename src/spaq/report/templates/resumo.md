@@ -1,1 +1,0 @@
-# Relatório SPAQ\n\n- Método: {{ method }}\n- Q_tot: {{ Q_tot_lpm }} L/min\n- ΔT: {{ dT_proj_C }} °C\n- Potência requerida: {{ power_req_kw }} kW\n- Modelo: {{ model }}\n- N_final: {{ N_final }}\n
