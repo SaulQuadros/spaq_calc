@@ -153,14 +153,14 @@ with cols_comb[1]:
     st.metric("Vazão (Q)", f"{C39:.2f}")
 with cols_comb[2]:
     st.metric("Altura man. (H)", f"{C40:.2f}")
-    st.metric("Qt Chuveiros Simultâneos", f"{Qt_chuveiros_sim:.2f}")
+    st.metric("Qt. Chuveiros", f"{Qt_chuveiros_sim:.2f}")
 
 output = BytesIO()
 with pd.ExcelWriter(output, engine="openpyxl") as writer:
     t1_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF_AQ")
     t2_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF")
     resumo = pd.DataFrame({
-        "Indicador": ["F6", "F7", "F13", "F14", "F15", "Qt Chuveiros Simultâneos"],
+        "Indicador": ["F6", "F7", "F13", "F14", "F15", "Qt. Chuveiros"],
         "Valor": [F6, F7, F13, F14, F15, Qt_chuveiros_sim]
     })
     resumo.to_excel(writer, index=False, sheet_name="Resumo")
@@ -173,4 +173,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App atualizado: Qt Chuveiros Simultâneos = C43*C41/(B18-B19)/B3")
+st.success("App atualizado: Qt. Chuveiros = C43*C41/(B18-B19)/B3")
