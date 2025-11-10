@@ -143,6 +143,19 @@ if Q_chuveiro is None or (B18 - B19) == 0 or Q_chuveiro == 0:
 else:
     Qt_chuveiros_sim = (C43 * C41) / ((B18 - B19) * Q_chuveiro)
 
+
+st.markdown("### Resultados SPAQ")
+cols_spaq = st.columns(3)
+with cols_spaq[0]:
+    st.metric("Fração AQ/AF", f"{B21:.2f}")
+    st.metric("Qt. Chuveiros", f"{Qt_chuveiros_sim:.2f}")
+with cols_spaq[1]:
+    st.metric("Energia AQ", f"{B25:.2f}")
+    st.metric("Pressão Aparelho crítico", f"{B30:.2f}")
+with cols_spaq[2]:
+    st.metric("Perda total de carga", f"{B34:.2f}")
+    st.metric("Pressão útil disponível", f"{B36:.2f}")
+
 st.markdown("### Indicadores combinados")
 cols_comb = st.columns(3)
 with cols_comb[0]:
