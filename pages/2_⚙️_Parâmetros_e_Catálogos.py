@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 from src.spaq.utils.session import set_state_defaults
-from src.spaq.io.parsers import load_builtin_heaters, read_catalog_csv, load_presets_yaml
+from src.spaq.io.parsers import load_builtin_heaters, read_catalog_csv, load_presets_yaml, read_dp_curves_csv
 
 st.set_page_config(page_title="Parâmetros & Catálogos", page_icon="⚙️", layout="wide")
 st.title("⚙️ Parâmetros & Catálogos")
@@ -19,6 +19,7 @@ set_state_defaults(
     margin=0.10,
     heater_catalog=load_builtin_heaters(),
     chosen_models=[],  # multiselect
+    dp_curves={}
 )
 
 method = st.radio("Método de dimensionamento", ["max_possible", "max_prob"],
@@ -42,6 +43,14 @@ if uploaded:
     st.session_state.heater_catalog = read_catalog_csv(uploaded)
 
 st.dataframe(st.session_state.heater_catalog, use_container_width=True)
+st.markdown('#### Curvas Δp do aquecedor (opcional, CSV longo: model,lpm,dp_kpa)')
+dp_up = st.file_uploader('Upload CSV curvas Δp', type=['csv'], key='dp_curves_csv')
+if dp_up:
+    try:
+        st.session_state.dp_curves = read_dp_curves_csv(dp_up)
+        st.success(f"Curvas carregadas para {len(st.session_state.dp_curves)} modelo(s).")
+    except Exception as e:
+        st.error(f"Erro ao ler curvas: {e}")
 
 # Multiselect de modelos
 models = st.session_state.heater_catalog["model"].tolist()

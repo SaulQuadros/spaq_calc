@@ -33,7 +33,9 @@ mixer_dp = st.number_input("Perda típica no misturador (kPa)", value=20.0, step
 q_per_unit = float(res.get("q_per_unit", 0.0))
 net_dp = float(st.session_state.get('dp_network_kpa', 0.0))
 st.info(f"Δp de rede (da página 🔧 Hidráulica): {net_dp:.1f} kPa")
-pb_msgs = pressure_budget_messages(points, row, q_per_unit, supply_dyn_kpa=supply_dyn - net_dp, mixer_dp_kpa=mixer_dp)
+dp_curves = st.session_state.get('dp_curves', {})
+curve = dp_curves.get(model, None)
+pb_msgs = pressure_budget_messages(points, row, q_per_unit, supply_dyn_kpa=supply_dyn - net_dp, mixer_dp_kpa=mixer_dp, dp_curve_override=curve)
 for m in pb_msgs:
     if m.startswith("OK"):
         st.success(m)
