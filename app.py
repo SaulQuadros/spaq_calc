@@ -117,10 +117,8 @@ col3.metric("Soma dos Pesos (F13)", f"{F13:.3f}")
 col4.metric("Vazão total (F14)", f"{F14:.1f} L/h")
 
 F15 = round(60 * (0.3 * max(F6 + F13, 0) ** 0.5) * 0.06, 1)
-
-# Correção: fração AQ/AF e vazão de AQ
-B21 = (B18 - B20) / (B18 - B19) if (B18 - B19) != 0 else 0  # fração AQ/AF correta
-B22 = F7 * B21  # vazão de AQ (L/min)
+B21 = 1 - (B18 - B20) / (B18 - B19) if (B18 - B19) != 0 else 0
+B22 = F7 * B21
 B25 = B22 * (B18 - B19)
 B27 = B25 / B26 if B26 != 0 else 0
 B30 = max(t1_edit["Pressão (m.c.a)"].max(), 0)
@@ -132,18 +130,11 @@ C41 = st.sidebar.number_input("Aquecedor - Quantidade", value=float(params_init.
 C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min)", value=float(params_init.get("C42", 21)))
 C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min)", value=float(params_init.get("C43", 483)))
 
-# Determinar vazão do chuveiro (B3)
-mask = t1_edit['Aparelho'].astype(str).str.contains('chuveiro', case=False, na=False)
-if mask.any():
-    Q_chuveiro = float(t1_edit.loc[mask, 'Vazão (L/min)'].iloc[0])
-else:
-    Q_chuveiro = 0
-
-# Qt. Chuv. Simultâneos conforme Excel: B22 / (B3 + B21)
-if Q_chuveiro == 0:
+# --- Cálculo ajustado conforme solicitado ---
+if (B3 := B19) is None or (B21 + B3) == 0:
     Qt_chuv_sim = 0.0
 else:
-    Qt_chuv_sim = B22 / (Q_chuveiro + B21)
+    Qt_chuv_sim = B22 / (B3 + B21)
 
 # --- Exibição de resultados ---
 st.markdown("### Resultados SPAQ")
@@ -188,4 +179,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App atualizado: cálculo de Qt. Chuv. Simultâneos = B22 / (B3 + B21) e fração AQ/AF corrigida.")
+st.success("App atualizado: cálculo de Qt. Chuv. Simultâneos = B22 / (B3 + B21)")
