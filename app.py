@@ -123,6 +123,16 @@ col4.metric("Vazão total (F14)", f"{F14:.1f} L/h")
 F15 = round(60 * (0.3 * max(F6 + F13, 0) ** 0.5) * 0.06, 1)
 B21 = 1 - (B18 - B20) / (B18 - B19) if (B18 - B19) != 0 else 0
 B22 = F7 * B21
+
+# obter vazão do chuveiro (B3) a partir da tabela 'Aparelhos com AF e AQ'
+Q_chuveiro = None
+try:
+    mask = t1_edit['Aparelho'].astype(str).str.contains('chuveiro', case=False, na=False)
+    if mask.any():
+        Q_chuveiro = float(t1_edit.loc[mask, 'Vazão (L/min)'].iloc[0])
+except Exception:
+    Q_chuveiro = None
+
 # Calcular B24 = B22 / (B3 + B21)
 if Q_chuveiro is None or (Q_chuveiro + B21) == 0:
     B24 = 0.0
