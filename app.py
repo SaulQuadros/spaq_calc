@@ -138,14 +138,14 @@ C44 = (C43 * C41 / (B18 - B19)) if (B18 - B19) != 0 else 0
 st.markdown("### Indicadores combinados")
 cols_comb = st.columns(3)
 with cols_comb[0]:
-    st.metric("Vazão combinada (F15)", f"{F15:.2f}")
-    st.metric("B22 (Q ajustado)", f"{B22:.2f}")
+    st.metric("Vazão combinada total", f"{F15:.2f}")
+    st.metric("Vazão de AQ", f"{B22:.2f}")
 with cols_comb[1]:
-    st.metric("B27 (Resultado)", f"{B27:.2f}")
-    st.metric("C39 (Pressurizador Q)", f"{C39:.2f}")
+    st.metric("Potência do aquecedor", f"{B27:.2f}")
+    st.metric("Vazão (Q)", f"{C39:.2f}")
 with cols_comb[2]:
-    st.metric("C40 (Altura manométrica)", f"{C40:.2f}")
-    st.metric("Qt. Chuveiros (C44)", f"{C44:.2f}")
+    st.metric("Altura man. (H)", f"{C40:.2f}")
+    st.metric("Qt. Chuveiros", f"{C44:.2f}")
 
 # --- Botão de download do Excel ---
 output = BytesIO()
@@ -166,4 +166,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App atualizado: campo B3 removido e cálculos corrigidos.")
+st.success("App atualizado com títulos descritivos dos indicadores combinados.")
