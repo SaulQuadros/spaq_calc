@@ -137,12 +137,22 @@ if (Q_chuveiro + B21) == 0:
 else:
     Qt_chuv_sim = B22 / (Q_chuveiro + B21)
 
+# Cálculo de Qt. Chuveiros (C44) conforme planilha
+C41 = st.sidebar.number_input("Aquecedor - Quantidade", value=float(params_init.get("C41", 2)))
+C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min)", value=float(params_init.get("C42", 21)))
+C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min)", value=float(params_init.get("C43", 483)))
+
+if (B18 - B19) != 0 and Q_chuveiro != 0:
+    Qt_chuveiros = (C43 * C41) / ((B18 - B19) * Q_chuveiro)
+else:
+    Qt_chuveiros = 0.0
+
 # --- Exibição de resultados ---
 st.markdown("### Resultados SPAQ")
 cols_spaq = st.columns(3)
 with cols_spaq[0]:
     st.metric("Proporção AQ/AF (B21)", f"{B21:.4f}")
-    st.metric("Qt. Chuv. Simultâneos", f"{Qt_chuv_sim:.3f}")
+    st.metric("Qt. Chuv. Simultâneos (B24)", f"{Qt_chuv_sim:.3f}")
 with cols_spaq[1]:
     st.metric("Vazão AQ (B22)", f"{B22:.2f} L/min")
     st.metric("Energia AQ (B25)", f"{B25:.2f}")
@@ -150,7 +160,7 @@ with cols_spaq[2]:
     st.metric("Potência útil (B27)", f"{B27:.2f}")
     st.metric("Vazão Chuveiro", f"{Q_chuveiro:.2f} L/min")
 
-# --- Indicadores combinados restaurados ---
+# --- Indicadores combinados (com C44) ---
 st.markdown("### Indicadores combinados")
 cols_comb = st.columns(3)
 with cols_comb[0]:
@@ -158,7 +168,7 @@ with cols_comb[0]:
     st.metric("Vazão de AQ (B22)", f"{B22:.2f}")
 with cols_comb[1]:
     st.metric("Potência do aquecedor (B27)", f"{B27:.2f}")
-    st.metric("Qt. Chuv. Simultâneos", f"{Qt_chuv_sim:.3f}")
+    st.metric("Qt. Chuveiros (C44)", f"{Qt_chuveiros:.3f}")
 with cols_comb[2]:
     st.metric("Proporção AQ/AF", f"{B21:.2f}")
     st.metric("Vazão Chuveiro", f"{Q_chuveiro:.2f}")
@@ -168,8 +178,8 @@ with pd.ExcelWriter(output, engine="openpyxl") as writer:
     t1_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF_AQ")
     t2_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF")
     resumo = pd.DataFrame({
-        "Indicador": ["F6", "F7", "F13", "F14", "F15", "B21", "B22", "Qt. Chuv. Simultâneos"],
-        "Valor": [F6, F7, F13, F14, F15, B21, B22, Qt_chuv_sim]
+        "Indicador": ["F6", "F7", "F13", "F14", "F15", "B21", "B22", "B24 Qt. Chuv. Simultâneos", "C44 Qt. Chuveiros"],
+        "Valor": [F6, F7, F13, F14, F15, B21, B22, Qt_chuv_sim, Qt_chuveiros]
     })
     resumo.to_excel(writer, index=False, sheet_name="Resumo")
 output.seek(0)
@@ -181,4 +191,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App corrigido com Indicadores Combinados restaurados e Qt. Chuv. Simultâneos conforme Excel.")
+st.success("App atualizado: adicionada 'Qt. Chuveiros (C44)' aos Indicadores Combinados, conforme planilha Excel.")
