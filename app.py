@@ -10,14 +10,12 @@ TEMPLATE_PATH = Path("11_Dimens_SPAQ_AQ_v1.xlsx")
 st.set_page_config(page_title="SPAQ/AQ -> Streamlit", layout="wide")
 st.title("Dimensionamento SPAQ/AQ")
 
-st.markdown(
-    """
-    Este aplicativo reproduz os quadros principais da planilha **11_Dimens_SPAQ_AQ_v1.xlsx**.
-    - As células _azuis_ do Excel são **entradas editáveis**.
-    - A coluna **Peso total** é **bloqueada** e apresenta o cálculo automático.
-    - Linhas de somas e totais não aparecem dentro das tabelas; os resultados são exibidos abaixo.
-    """
-)
+st.markdown("""
+Este aplicativo reproduz os quadros principais da planilha **11_Dimens_SPAQ_AQ_v1.xlsx**.
+- As células _azuis_ do Excel são **entradas editáveis**.
+- A coluna **Peso total** é **bloqueada** e apresenta o cálculo automático.
+- Linhas de somas e totais não aparecem dentro das tabelas; os resultados são exibidos abaixo.
+""")
 
 def read_initial_tables(path: Path):
     if path.exists():
@@ -119,48 +117,64 @@ col3.metric("Soma dos Pesos (F13)", f"{F13:.3f}")
 col4.metric("Vazão total (F14)", f"{F14:.1f} L/h")
 
 F15 = round(60 * (0.3 * max(F6 + F13, 0) ** 0.5) * 0.06, 1)
-
-# --- Cálculo conforme Excel ---
-# B21 = 1 - (B18 - B20)/(B18 - B19)  (proporção AQ/AF)
 B21 = 1 - (B18 - B20) / (B18 - B19) if (B18 - B19) != 0 else 0
-# B22 = F7 * B21 (Vazão AQ)
 B22 = F7 * B21
 B25 = B22 * (B18 - B19)
 B27 = B25 / B26 if B26 != 0 else 0
+B30 = max(t1_edit["Pressão (m.c.a)"].max(), 0)
+B34 = B30 + B31 + B32 + B33
+B36 = B35 - B34
+C39 = F15
+C40 = 0 if B36 > 0 else -1 * B36
+C41 = st.sidebar.number_input("Aquecedor - Quantidade", value=float(params_init.get("C41", 2)))
+C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min)", value=float(params_init.get("C42", 21)))
+C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min)", value=float(params_init.get("C43", 483)))
 
-# Determinar vazão do chuveiro
-mask = t1_edit['Aparelho'].astype(str).str.contains('chuveiro', case=False, na=False)
-if mask.any():
-    Q_chuveiro = float(t1_edit.loc[mask, 'Vazão (L/min)'].iloc[0])
+Q_chuveiro = None
+try:
+    mask = t1_edit['Aparelho'].astype(str).str.contains('chuveiro', case=False, na=False)
+    if mask.any():
+        Q_chuveiro = float(t1_edit.loc[mask, 'Vazão (L/min)'].iloc[0])
+except Exception:
+    Q_chuveiro = None
+
+if Q_chuveiro is None or (B18 - B19) == 0 or Q_chuveiro == 0:
+    Qt_chuveiros_sim = 0.0
 else:
-    Q_chuveiro = 0.0
+    Qt_chuveiros_sim = (C43 * C41) / ((B18 - B19) * Q_chuveiro)
 
-# Qt. Chuv. Simultâneos = Vazão AQ / (Vazão no Chuveiro + Proporção AQ/AF)
-if (Q_chuveiro + B21) == 0:
-    Qt_chuv_sim = 0.0
-else:
-    Qt_chuv_sim = B22 / (Q_chuveiro + B21)
 
-# --- Exibição de resultados ---
 st.markdown("### Resultados SPAQ")
 cols_spaq = st.columns(3)
 with cols_spaq[0]:
-    st.metric("Proporção AQ/AF (B21)", f"{B21:.4f}")
-    st.metric("Qt. Chuv. Simultâneos", f"{Qt_chuv_sim:.3f}")
+    st.metric("Fração AQ/AF", f"{B21:.2f}")
+    st.metric("Qt. Chuveiros", f"{Qt_chuveiros_sim:.2f}")
 with cols_spaq[1]:
-    st.metric("Vazão AQ (B22)", f"{B22:.2f} L/min")
-    st.metric("Energia AQ (B25)", f"{B25:.2f}")
+    st.metric("Energia AQ", f"{B25:.2f}")
+    st.metric("Pressão Aparelho crítico", f"{B30:.2f}")
 with cols_spaq[2]:
-    st.metric("Potência útil (B27)", f"{B27:.2f}")
-    st.metric("Vazão Chuveiro", f"{Q_chuveiro:.2f} L/min")
+    st.metric("Perda total de carga", f"{B34:.2f}")
+    st.metric("Pressão útil disponível", f"{B36:.2f}")
+
+st.markdown("### Indicadores combinados")
+cols_comb = st.columns(3)
+with cols_comb[0]:
+    st.metric("Vazão combinada total", f"{F15:.2f}")
+    st.metric("Vazão de AQ", f"{B22:.2f}")
+with cols_comb[1]:
+    st.metric("Potência do aquecedor", f"{B27:.2f}")
+    st.metric("Vazão (Q)", f"{C39:.2f}")
+with cols_comb[2]:
+    st.metric("Altura man. (H)", f"{C40:.2f}")
+    st.metric("Qt. Chuveiros", f"{Qt_chuveiros_sim:.2f}")
 
 output = BytesIO()
 with pd.ExcelWriter(output, engine="openpyxl") as writer:
     t1_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF_AQ")
     t2_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF")
     resumo = pd.DataFrame({
-        "Indicador": ["F6", "F7", "F13", "F14", "F15", "B21", "B22", "Qt. Chuv. Simultâneos"],
-        "Valor": [F6, F7, F13, F14, F15, B21, B22, Qt_chuv_sim]
+        "Indicador": ["F6", "F7", "F13", "F14", "F15", "Qt. Chuveiros"],
+        "Valor": [F6, F7, F13, F14, F15, Qt_chuveiros_sim]
     })
     resumo.to_excel(writer, index=False, sheet_name="Resumo")
 output.seek(0)
@@ -172,4 +186,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App corrigido: cálculo de Qt. Chuv. Simultâneos = Vazão AQ / (Vazão do Chuveiro + Proporção AQ/AF)")
+st.success("App atualizado: Qt. Chuveiros = C43*C41/(B18-B19)/B3")
