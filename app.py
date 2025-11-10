@@ -1,9 +1,9 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 from pathlib import Path
 from openpyxl import load_workbook
+from io import BytesIO
 
 TEMPLATE_PATH = Path("11_Dimens_SPAQ_AQ_v1.xlsx")
 
@@ -76,34 +76,62 @@ B32 = st.sidebar.number_input("B32", value=float(params_init.get("B32", 6)))
 B33 = st.sidebar.number_input("B33", value=float(params_init.get("B33", 2)))
 B35 = st.sidebar.number_input("B35", value=float(params_init.get("B35", 5)))
 
+# ---- TABELA 1: Aparelhos com AF e AQ ----
 st.header("Aparelhos com AF e AQ")
-t1 = st.data_editor(t1_init, num_rows="dynamic", key="t1")
+st.markdown("Edite as entradas (colunas azuis). A coluna **Peso total** é calculada automaticamente e faz parte da tabela.")
+t1 = st.data_editor(t1_init, num_rows="dynamic", key="t1_editor")
 
-st.header("Aparelhos só AF")
-t2 = st.data_editor(t2_init, num_rows="dynamic", key="t2")
+# calcular coluna Peso total para t1 e exibi-la na tabela (atualiza)
+for col in ["Vazão (L/min)", "Pressão (m.c.a)", "Quantidade", "Peso"]:
+    t1[col] = pd.to_numeric(t1[col], errors="coerce").fillna(0)
+t1["Peso total"] = (t1["Quantidade"] * t1["Peso"]).round(4)
 
-for df in (t1, t2):
-    for col in ["Vazão (L/min)", "Pressão (m.c.a)", "Quantidade", "Peso"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+# mostrar tabela com Peso total
+st.dataframe(t1.set_index("Aparelho"))
 
-t1["Peso total"] = t1["Quantidade"] * t1["Peso"]
-t2["Peso total"] = t2["Quantidade"] * t2["Peso"]
-
+# resultados (labels) abaixo da tabela 1
 F6 = t1["Peso total"].sum()
-F13 = t2["Peso total"].sum()
 F7 = round(60 * (0.3 * max(F6, 0) ** 0.5), 1)
-F14 = round(60 * (0.3 * max(F13, 0) ** 0.5), 1)
-F15 = round(60 * (0.3 * max(F6 + F13, 0) ** 0.5) * 0.06, 1)
+st.markdown("**Resultados — Aparelhos com AF e AQ**")
+cols1 = st.columns(3)
+with cols1[0]:
+    st.metric("Soma dos Pesos (F6)", f"{F6:.3f}")
+with cols1[1]:
+    st.metric("Vazão calculada (F7) — L/h", f"{F7:.1f}")
+with cols1[2]:
+    st.write("")  # espaço para alinhamento
 
+# ---- TABELA 2: Aparelhos só AF ----
+st.header("Aparelhos só AF")
+st.markdown("Edite as entradas (colunas azuis). A coluna **Peso total** é calculada automaticamente e faz parte da tabela.")
+t2 = st.data_editor(t2_init, num_rows="dynamic", key="t2_editor")
+
+for col in ["Vazão (L/min)", "Pressão (m.c.a)", "Quantidade", "Peso"]:
+    t2[col] = pd.to_numeric(t2[col], errors="coerce").fillna(0)
+t2["Peso total"] = (t2["Quantidade"] * t2["Peso"]).round(4)
+st.dataframe(t2.set_index("Aparelho"))
+
+# resultados (labels) abaixo da tabela 2
+F13 = t2["Peso total"].sum()
+F14 = round(60 * (0.3 * max(F13, 0) ** 0.5), 1)
+st.markdown("**Resultados — Aparelhos só AF**")
+cols2 = st.columns(3)
+with cols2[0]:
+    st.metric("Soma dos Pesos (F13)", f"{F13:.3f}")
+with cols2[1]:
+    st.metric("Vazão calculada (F14) — L/h", f"{F14:.1f}")
+with cols2[2]:
+    st.write("")
+
+# ---- CÁLCULOS COMBINADOS E OUTROS INDICADORES ----
+F15 = round(60 * (0.3 * max(F6 + F13, 0) ** 0.5) * 0.06, 1)
 B21 = 1 - (B18 - B20) / (B18 - B19) if (B18 - B19) != 0 else 0
 B22 = F7 * B21
 B25 = B22 * (B18 - B19)
 B27 = B25 / B26 if B26 != 0 else 0
-
 B30 = t1["Pressão (m.c.a)"].max() if len(t1) else 0
 B34 = B30 + B31 + B32 + B33
 B36 = B35 - B34
-
 C39 = F15
 C40 = 0 if B36 > 0 else -1 * B36
 C41 = st.sidebar.number_input("Aquecedor - Quantidade (C41)", value=float(params_init.get("C41", 2)))
@@ -111,21 +139,37 @@ C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min) (C42)", value=float(pa
 C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min) (C43)", value=float(params_init.get("C43", 483)))
 C44 = (C43 * C41 / (B18 - B19) / B3) if (B18 - B19) != 0 and B3 != 0 else 0
 
-st.subheader("Resultados — Aparelhos com AF e AQ")
-st.dataframe(t1.set_index("Aparelho"))
-st.subheader("Resultados — Aparelhos só AF")
-st.dataframe(t2.set_index("Aparelho"))
-
-st.subheader("Cálculos Resumidos")
-cols = st.columns(3)
-with cols[0]:
-    st.metric("Peso total AF+AQ (F6)", f"{F6:.2f}")
-    st.metric("Peso total AF (F13)", f"{F13:.2f}")
-with cols[1]:
-    st.metric("Vazão total AF+AQ (F7)", f"{F7:.1f}")
-    st.metric("Vazão total AF (F14)", f"{F14:.1f}")
-with cols[2]:
-    st.metric("Excedente/falta de pressão (B36)", f"{B36:.2f}")
+st.markdown("### Indicadores combinados")
+cols_comb = st.columns(3)
+with cols_comb[0]:
+    st.metric("Vazão combinada (F15) — m³/h ?", f"{F15:.2f}")
+    st.metric("B22 (Q ajustado)", f"{B22:.2f}")
+with cols_comb[1]:
+    st.metric("B27 (resultado)", f"{B27:.2f}")
+    st.metric("C39 (Pressurizador Q)", f"{C39:.2f}")
+with cols_comb[2]:
+    st.metric("C40 (Altura man. H)", f"{C40:.2f}")
     st.metric("Qt. Chuveiros (C44)", f"{C44:.2f}")
 
 st.success("App carregado com sucesso! Se o Excel não estiver presente, os dados padrão foram usados.")
+
+# --- Botão de download do Excel gerado (arquivo em memória) ---
+output = BytesIO()
+with pd.ExcelWriter(output, engine="openpyxl") as writer:
+    # salvar as tabelas com a coluna Peso total
+    t1.to_excel(writer, index=False, sheet_name="Aparelhos_AF_AQ")
+    t2.to_excel(writer, index=False, sheet_name="Aparelhos_AF")
+    resumo = pd.DataFrame({
+        "Indicador": ["F6 (Peso total T1)", "F13 (Peso total T2)", "F7 (Vazão T1)", "F14 (Vazão T2)", "F15 (Vazão combinada)", "B36 (Excedente/falta pressão)", "C44 (Qt. Chuveiros)"],
+        "Valor": [F6, F13, F7, F14, F15, B36, C44]
+    })
+    resumo.to_excel(writer, index=False, sheet_name="Resumo")
+    writer.save()
+    output.seek(0)
+
+st.download_button(
+    label="📥 Baixar resultados em Excel",
+    data=output.getvalue(),
+    file_name="Resultados_SPAQ.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
