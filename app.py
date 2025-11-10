@@ -76,6 +76,10 @@ B32 = st.sidebar.number_input("Perda de carga do aquecedor", value=float(params_
 B33 = st.sidebar.number_input("Perda de carga do medidor", value=float(params_init.get("B33", 2)))
 B35 = st.sidebar.number_input("Pressão dinâmica disponível", value=float(params_init.get("B35", 5)))
 
+C41 = st.sidebar.number_input("Aquecedor - Quantidade", value=float(params_init.get("C41", 2)))
+C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min)", value=float(params_init.get("C42", 21)))
+C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min)", value=float(params_init.get("C43", 483)))
+
 st.header("Aparelhos com AF e AQ")
 t1 = t1_init.copy()
 for col in ["Vazão (L/min)", "Pressão (m.c.a)", "Quantidade", "Peso"]:
@@ -137,11 +141,7 @@ if (Q_chuveiro + B21) == 0:
 else:
     Qt_chuv_sim = B22 / (Q_chuveiro + B21)
 
-# Cálculo de Qt. Chuveiros (C44) conforme planilha
-C41 = st.sidebar.number_input("Aquecedor - Quantidade", value=float(params_init.get("C41", 2)))
-C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min)", value=float(params_init.get("C42", 21)))
-C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min)", value=float(params_init.get("C43", 483)))
-
+# Cálculo de Qt. Chuveiros (C44)
 if (B18 - B19) != 0 and Q_chuveiro != 0:
     Qt_chuveiros = (C43 * C41) / ((B18 - B19) * Q_chuveiro)
 else:
@@ -157,21 +157,16 @@ with cols_spaq[1]:
     st.metric("Vazão AQ (B22)", f"{B22:.2f} L/min")
     st.metric("Energia AQ (B25)", f"{B25:.2f}")
 with cols_spaq[2]:
-    st.metric("Potência útil (B27)", f"{B27:.2f}")
+    st.metric("Potência do aquecedor (B27)", f"{B27:.2f}")
     st.metric("Vazão Chuveiro", f"{Q_chuveiro:.2f} L/min")
 
-# --- Indicadores combinados (com C44) ---
+# --- Indicadores combinados simplificados ---
 st.markdown("### Indicadores combinados")
-cols_comb = st.columns(3)
+cols_comb = st.columns(2)
 with cols_comb[0]:
     st.metric("Vazão combinada total (F15)", f"{F15:.2f}")
-    st.metric("Vazão de AQ (B22)", f"{B22:.2f}")
 with cols_comb[1]:
-    st.metric("Potência do aquecedor (B27)", f"{B27:.2f}")
     st.metric("Qt. Chuveiros (C44)", f"{Qt_chuveiros:.3f}")
-with cols_comb[2]:
-    st.metric("Proporção AQ/AF", f"{B21:.2f}")
-    st.metric("Vazão Chuveiro", f"{Q_chuveiro:.2f}")
 
 output = BytesIO()
 with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -191,4 +186,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App atualizado: adicionada 'Qt. Chuveiros (C44)' aos Indicadores Combinados, conforme planilha Excel.")
+st.success("Layout atualizado: Indicadores combinados simplificados e Potência do aquecedor movida para Resultados SPAQ.")
