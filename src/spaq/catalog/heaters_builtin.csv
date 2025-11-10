@@ -1,0 +1,4 @@
+brand,model,q_ref_lpm,dT_ref_C,power_kw,q_min_on_lpm,p_min_dyn_kpa
+Rinnai,REU-A1613WD,16,25,32,3.0,100
+Lorenzetti,LZ-1600DE,15,25,30,2.5,80
+Komeco,KD 18i,18,25,36,3.0,100
