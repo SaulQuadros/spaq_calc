@@ -48,7 +48,6 @@ def read_initial_tables(path: Path):
         except Exception as e:
             st.warning(f"Erro ao ler o arquivo Excel: {e}. Usando dados padrão.")
 
-    # Dados padrão se o arquivo não existir
     t1 = pd.DataFrame([
         {"Aparelho": "Chuveiro", "Vazão (L/min)": 12, "Pressão (m.c.a)": 4, "Quantidade": 5, "Peso": 0.4},
         {"Aparelho": "Lavatório", "Vazão (L/min)": 8, "Pressão (m.c.a)": 4, "Quantidade": 5, "Peso": 0.2},
@@ -75,7 +74,6 @@ B32 = st.sidebar.number_input("Perda de carga do aquecedor", value=float(params_
 B33 = st.sidebar.number_input("Perda de carga do medidor", value=float(params_init.get("B33", 2)))
 B35 = st.sidebar.number_input("Pressão dinâmica disponível", value=float(params_init.get("B35", 5)))
 
-# ---- TABELA 1: Aparelhos com AF e AQ ----
 st.header("Aparelhos com AF e AQ")
 t1 = t1_init.copy()
 for col in ["Vazão (L/min)", "Pressão (m.c.a)", "Quantidade", "Peso"]:
@@ -97,7 +95,6 @@ col1, col2 = st.columns(2)
 col1.metric("Soma dos Pesos (F6)", f"{F6:.3f}")
 col2.metric("Vazão total (F7)", f"{F7:.1f} L/h")
 
-# ---- TABELA 2: Aparelhos só AF ----
 st.header("Aparelhos só AF")
 t2 = t2_init.copy()
 for col in ["Vazão (L/min)", "Pressão (m.c.a)", "Quantidade", "Peso"]:
@@ -119,7 +116,6 @@ col3, col4 = st.columns(2)
 col3.metric("Soma dos Pesos (F13)", f"{F13:.3f}")
 col4.metric("Vazão total (F14)", f"{F14:.1f} L/h")
 
-# ---- CÁLCULOS COMBINADOS ----
 F15 = round(60 * (0.3 * max(F6 + F13, 0) ** 0.5) * 0.06, 1)
 B21 = 1 - (B18 - B20) / (B18 - B19) if (B18 - B19) != 0 else 0
 B22 = F7 * B21
@@ -133,7 +129,19 @@ C40 = 0 if B36 > 0 else -1 * B36
 C41 = st.sidebar.number_input("Aquecedor - Quantidade", value=float(params_init.get("C41", 2)))
 C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min)", value=float(params_init.get("C42", 21)))
 C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min)", value=float(params_init.get("C43", 483)))
-C44 = (C43 * C41 / (B18 - B19)) if (B18 - B19) != 0 else 0
+
+Q_chuveiro = None
+try:
+    mask = t1_edit['Aparelho'].astype(str).str.contains('chuveiro', case=False, na=False)
+    if mask.any():
+        Q_chuveiro = float(t1_edit.loc[mask, 'Vazão (L/min)'].iloc[0])
+except Exception:
+    Q_chuveiro = None
+
+if Q_chuveiro is None or (B18 - B19) == 0 or Q_chuveiro == 0:
+    Qt_chuveiros_sim = 0.0
+else:
+    Qt_chuveiros_sim = (C43 * C41) / ((B18 - B19) * Q_chuveiro)
 
 st.markdown("### Indicadores combinados")
 cols_comb = st.columns(3)
@@ -145,16 +153,15 @@ with cols_comb[1]:
     st.metric("Vazão (Q)", f"{C39:.2f}")
 with cols_comb[2]:
     st.metric("Altura man. (H)", f"{C40:.2f}")
-    st.metric("Qt. Chuveiros", f"{C44:.2f}")
+    st.metric("Qt Chuveiros Simultâneos", f"{Qt_chuveiros_sim:.2f}")
 
-# --- Botão de download do Excel ---
 output = BytesIO()
 with pd.ExcelWriter(output, engine="openpyxl") as writer:
     t1_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF_AQ")
     t2_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF")
     resumo = pd.DataFrame({
-        "Indicador": ["F6", "F7", "F13", "F14", "F15", "B36", "C44"],
-        "Valor": [F6, F7, F13, F14, F15, B36, C44]
+        "Indicador": ["F6", "F7", "F13", "F14", "F15", "Qt Chuveiros Simultâneos"],
+        "Valor": [F6, F7, F13, F14, F15, Qt_chuveiros_sim]
     })
     resumo.to_excel(writer, index=False, sheet_name="Resumo")
 output.seek(0)
@@ -166,4 +173,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App atualizado com títulos descritivos dos indicadores combinados.")
+st.success("App atualizado: Qt Chuveiros Simultâneos = C43*C41/(B18-B19)/B3")
