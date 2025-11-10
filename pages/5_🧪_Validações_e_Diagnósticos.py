@@ -31,7 +31,9 @@ st.subheader("Balanço de Pressão (simplificado)")
 supply_dyn = st.number_input("Pressão dinâmica disponível a montante do aquecedor (kPa)", value=250.0, step=10.0)
 mixer_dp = st.number_input("Perda típica no misturador (kPa)", value=20.0, step=5.0)
 q_per_unit = float(res.get("q_per_unit", 0.0))
-pb_msgs = pressure_budget_messages(points, row, q_per_unit, supply_dyn_kpa=supply_dyn, mixer_dp_kpa=mixer_dp)
+net_dp = float(st.session_state.get('dp_network_kpa', 0.0))
+st.info(f"Δp de rede (da página 🔧 Hidráulica): {net_dp:.1f} kPa")
+pb_msgs = pressure_budget_messages(points, row, q_per_unit, supply_dyn_kpa=supply_dyn - net_dp, mixer_dp_kpa=mixer_dp)
 for m in pb_msgs:
     if m.startswith("OK"):
         st.success(m)
