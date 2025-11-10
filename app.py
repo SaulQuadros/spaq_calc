@@ -19,7 +19,6 @@ st.markdown(
     """
 )
 
-# Função para carregar tabelas e parâmetros iniciais
 def read_initial_tables(path: Path):
     if path.exists():
         try:
@@ -67,72 +66,124 @@ def read_initial_tables(path: Path):
 
 t1_init, t2_init, params_init = read_initial_tables(TEMPLATE_PATH)
 
-# Entradas do painel lateral
 st.sidebar.header("Parâmetros gerais")
 B18 = st.sidebar.number_input("Temperatura AQ (TAQ)", value=float(params_init.get("B18", 45)))
 B19 = st.sidebar.number_input("Temperatura AF (TAF)", value=float(params_init.get("B19", 20)))
 B20 = st.sidebar.number_input("Temperatura de uso (TAM)", value=float(params_init.get("B20", 40)))
 B26 = st.sidebar.number_input("Rendimento", value=float(params_init.get("B26", 0.8)))
+B31 = st.sidebar.number_input("Perda de carga", value=float(params_init.get("B31", 5)))
+B32 = st.sidebar.number_input("Perda de carga do aquecedor", value=float(params_init.get("B32", 6)))
+B33 = st.sidebar.number_input("Perda de carga do medidor", value=float(params_init.get("B33", 2)))
+B35 = st.sidebar.number_input("Pressão dinâmica disponível", value=float(params_init.get("B35", 5)))
+
 C41 = st.sidebar.number_input("Aquecedor - Quantidade", value=float(params_init.get("C41", 2)))
+C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min)", value=float(params_init.get("C42", 21)))
 C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min)", value=float(params_init.get("C43", 483)))
 
-# Processamento dos dados
+st.header("Aparelhos com AF e AQ")
 t1 = t1_init.copy()
 for col in ["Vazão (L/min)", "Pressão (m.c.a)", "Quantidade", "Peso"]:
     t1[col] = pd.to_numeric(t1[col], errors="coerce").fillna(0)
 t1["Peso total"] = (t1["Quantidade"] * t1["Peso"]).round(4)
 
-F6 = (t1["Quantidade"] * t1["Peso"]).sum()
+t1_edit = st.data_editor(
+    t1,
+    num_rows="dynamic",
+    disabled=["Peso total"],
+    key="t1_editor"
+)
+
+F6 = (t1_edit["Quantidade"] * t1_edit["Peso"]).sum()
 F7 = round(60 * (0.3 * max(F6, 0) ** 0.5), 1)
 
+st.markdown("**Resultados — Aparelhos com AF e AQ**")
+col1, col2 = st.columns(2)
+col1.metric("Soma dos Pesos (F6)", f"{F6:.3f}")
+col2.metric("Vazão total (F7)", f"{F7:.1f} L/h")
+
+st.header("Aparelhos só AF")
 t2 = t2_init.copy()
 for col in ["Vazão (L/min)", "Pressão (m.c.a)", "Quantidade", "Peso"]:
     t2[col] = pd.to_numeric(t2[col], errors="coerce").fillna(0)
-F13 = (t2["Quantidade"] * t2["Peso"]).sum()
+t2["Peso total"] = (t2["Quantidade"] * t2["Peso"]).round(4)
+
+t2_edit = st.data_editor(
+    t2,
+    num_rows="dynamic",
+    disabled=["Peso total"],
+    key="t2_editor"
+)
+
+F13 = (t2_edit["Quantidade"] * t2_edit["Peso"]).sum()
 F14 = round(60 * (0.3 * max(F13, 0) ** 0.5), 1)
+
+st.markdown("**Resultados — Aparelhos só AF**")
+col3, col4 = st.columns(2)
+col3.metric("Soma dos Pesos (F13)", f"{F13:.3f}")
+col4.metric("Vazão total (F14)", f"{F14:.1f} L/h")
+
 F15 = round(60 * (0.3 * max(F6 + F13, 0) ** 0.5) * 0.06, 1)
 
+# --- Cálculo conforme Excel ---
 B21 = 1 - (B18 - B20) / (B18 - B19) if (B18 - B19) != 0 else 0
 B22 = F7 * B21
 B25 = B22 * (B18 - B19)
 B27 = B25 / B26 if B26 != 0 else 0
 
-mask = t1['Aparelho'].astype(str).str.contains('chuveiro', case=False, na=False)
-Q_chuveiro = float(t1.loc[mask, 'Vazão (L/min)'].iloc[0]) if mask.any() else 0.0
+mask = t1_edit['Aparelho'].astype(str).str.contains('chuveiro', case=False, na=False)
+if mask.any():
+    Q_chuveiro = float(t1_edit.loc[mask, 'Vazão (L/min)'].iloc[0])
+else:
+    Q_chuveiro = 0.0
 
-Qt_chuv_sim = B22 / (Q_chuveiro + B21) if (Q_chuveiro + B21) != 0 else 0
-Qt_chuveiros = (C43 * C41) / ((B18 - B19) * Q_chuveiro) if (B18 - B19) != 0 and Q_chuveiro != 0 else 0
+if (Q_chuveiro + B21) == 0:
+    Qt_chuv_sim = 0.0
+else:
+    Qt_chuv_sim = B22 / (Q_chuveiro + B21)
 
-# Resultados SPAQ reorganizados
+# Cálculo de Qt. Chuveiros (C44)
+if (B18 - B19) != 0 and Q_chuveiro != 0:
+    Qt_chuveiros = (C43 * C41) / ((B18 - B19) * Q_chuveiro)
+else:
+    Qt_chuveiros = 0.0
+
+# --- Exibição de resultados ---
 st.markdown("### Resultados SPAQ")
-cols_top = st.columns(3)
-cols_top[0].metric("Proporção AQ/AF (B21)", f"{B21:.4f}")
-cols_top[1].metric("Vazão AQ (B22)", f"{B22:.2f} L/min")
-cols_top[2].metric("Qt. Chuv. Simultâneos (B24)", f"{Qt_chuv_sim:.3f}")
+cols_spaq = st.columns(3)
+with cols_spaq[0]:
+    st.metric("Proporção AQ/AF (B21)", f"{B21:.4f}")
+    st.metric("Qt. Chuv. Simultâneos (B24)", f"{Qt_chuv_sim:.3f}")
+with cols_spaq[1]:
+    st.metric("Vazão AQ (B22)", f"{B22:.2f} L/min")
+    st.metric("Energia AQ (B25)", f"{B25:.2f}")
+with cols_spaq[2]:
+    st.metric("Potência do aquecedor (B27)", f"{B27:.2f}")
+    st.metric("Vazão Chuveiro", f"{Q_chuveiro:.2f} L/min")
 
-cols_bottom = st.columns(3)
-cols_bottom[0].metric("Energia AQ (B25)", f"{B25:.2f}")
-cols_bottom[1].metric("Potência do aquecedor (B27)", f"{B27:.2f}")
-cols_bottom[2].metric("Vazão Chuveiro", f"{Q_chuveiro:.2f} L/min")
-
-# Indicadores combinados
+# --- Indicadores combinados simplificados ---
 st.markdown("### Indicadores combinados")
 cols_comb = st.columns(2)
-cols_comb[0].metric("Vazão combinada total (F15)", f"{F15:.2f}")
-cols_comb[1].metric("Qt. Chuveiros (C44)", f"{Qt_chuveiros:.3f}")
+with cols_comb[0]:
+    st.metric("Vazão combinada total (F15)", f"{F15:.2f}")
+with cols_comb[1]:
+    st.metric("Qt. Chuveiros (C44)", f"{Qt_chuveiros:.3f}")
 
-# Exportação
 output = BytesIO()
 with pd.ExcelWriter(output, engine="openpyxl") as writer:
+    t1_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF_AQ")
+    t2_edit.to_excel(writer, index=False, sheet_name="Aparelhos_AF")
     resumo = pd.DataFrame({
-        "Indicador": ["F6","F7","F13","F14","F15","B21","B22","B24","B25","B27","C44"],
-        "Valor": [F6,F7,F13,F14,F15,B21,B22,Qt_chuv_sim,B25,B27,Qt_chuveiros]
+        "Indicador": ["F6", "F7", "F13", "F14", "F15", "B21", "B22", "B24 Qt. Chuv. Simultâneos", "C44 Qt. Chuveiros"],
+        "Valor": [F6, F7, F13, F14, F15, B21, B22, Qt_chuv_sim, Qt_chuveiros]
     })
     resumo.to_excel(writer, index=False, sheet_name="Resumo")
 output.seek(0)
 
-st.download_button("📥 Baixar resultados em Excel", output.getvalue(),
-                   file_name="Resultados_SPAQ.xlsx",
-                   mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+st.download_button(
+    label="📥 Baixar resultados em Excel",
+    data=output.getvalue(),
+    file_name="Resultados_SPAQ.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
 
-st.success("Layout finalizado: Resultados SPAQ ordenados e Indicadores Combinados mantidos.")
+st.success("Layout atualizado: Indicadores combinados simplificados e Potência do aquecedor movida para Resultados SPAQ.")
