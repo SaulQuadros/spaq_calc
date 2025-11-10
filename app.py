@@ -66,15 +66,15 @@ def read_initial_tables(path: Path):
 t1_init, t2_init, params_init = read_initial_tables(TEMPLATE_PATH)
 
 st.sidebar.header("Parâmetros gerais")
-B3 = st.sidebar.number_input("B3 (chuveiros por ramal)", value=float(params_init.get("B3", 12)))
-B18 = st.sidebar.number_input("B18 (Pressão disponível m.c.a)", value=float(params_init.get("B18", 45)))
-B19 = st.sidebar.number_input("B19 (Pressão de consumo m.c.a)", value=float(params_init.get("B19", 20)))
-B20 = st.sidebar.number_input("B20 (Perda adicional m.c.a)", value=float(params_init.get("B20", 40)))
-B26 = st.sidebar.number_input("B26 (Eficiência ou divisor)", value=float(params_init.get("B26", 0.8)))
-B31 = st.sidebar.number_input("B31", value=float(params_init.get("B31", 5)))
-B32 = st.sidebar.number_input("B32", value=float(params_init.get("B32", 6)))
-B33 = st.sidebar.number_input("B33", value=float(params_init.get("B33", 2)))
-B35 = st.sidebar.number_input("B35", value=float(params_init.get("B35", 5)))
+B3 = st.sidebar.number_input("Chuveiro (quantidade por ramal)", value=float(params_init.get("B3", 12)))
+B18 = st.sidebar.number_input("Temperatura AQ (TAQ)", value=float(params_init.get("B18", 45)))
+B19 = st.sidebar.number_input("Temperatura AF (TAF)", value=float(params_init.get("B19", 20)))
+B20 = st.sidebar.number_input("Temperatura de uso (TAM)", value=float(params_init.get("B20", 40)))
+B26 = st.sidebar.number_input("Rendimento", value=float(params_init.get("B26", 0.8)))
+B31 = st.sidebar.number_input("Perda de carga", value=float(params_init.get("B31", 5)))
+B32 = st.sidebar.number_input("Perda de carga do aquecedor", value=float(params_init.get("B32", 6)))
+B33 = st.sidebar.number_input("Perda de carga do medidor", value=float(params_init.get("B33", 2)))
+B35 = st.sidebar.number_input("Pressão dinâmica disponível", value=float(params_init.get("B35", 5)))
 
 # ---- TABELA 1: Aparelhos com AF e AQ ----
 st.header("Aparelhos com AF e AQ")
@@ -86,7 +86,7 @@ t1["Peso total"] = (t1["Quantidade"] * t1["Peso"]).round(4)
 t1_edit = st.data_editor(
     t1,
     num_rows="dynamic",
-    disabled=["Peso total"],  # bloqueia edição da coluna calculada
+    disabled=["Peso total"],
     key="t1_editor"
 )
 
@@ -131,9 +131,9 @@ B34 = B30 + B31 + B32 + B33
 B36 = B35 - B34
 C39 = F15
 C40 = 0 if B36 > 0 else -1 * B36
-C41 = st.sidebar.number_input("Aquecedor - Quantidade (C41)", value=float(params_init.get("C41", 2)))
-C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min) (C42)", value=float(params_init.get("C42", 21)))
-C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min) (C43)", value=float(params_init.get("C43", 483)))
+C41 = st.sidebar.number_input("Aquecedor - Quantidade", value=float(params_init.get("C41", 2)))
+C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min)", value=float(params_init.get("C42", 21)))
+C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min)", value=float(params_init.get("C43", 483)))
 C44 = (C43 * C41 / (B18 - B19) / B3) if (B18 - B19) != 0 and B3 != 0 else 0
 
 st.markdown("### Indicadores combinados")
@@ -167,4 +167,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App pronto para execução no Streamlit Cloud.")
+st.success("App com rótulos originais do Excel aplicado na barra lateral.")
