@@ -43,7 +43,7 @@ def read_initial_tables(path: Path):
                     "Peso": ws.cell(row=r, column=5).value
                 })
                 r += 1
-            params = {k: ws[k].value for k in ["B3","B18","B19","B20","B26","B31","B32","B33","B35","C41","C42","C43"]}
+            params = {k: ws[k].value for k in ["B18","B19","B20","B26","B31","B32","B33","B35","C41","C42","C43"]}
             return pd.DataFrame(t1_rows), pd.DataFrame(t2_rows), params
         except Exception as e:
             st.warning(f"Erro ao ler o arquivo Excel: {e}. Usando dados padrão.")
@@ -59,14 +59,13 @@ def read_initial_tables(path: Path):
         {"Aparelho": "Máquina de lavar roupas", "Vazão (L/min)": 15, "Pressão (m.c.a)": 2, "Quantidade": 1, "Peso": 0.7},
         {"Aparelho": "Vaso sanitário", "Vazão (L/min)": 8, "Pressão (m.c.a)": 2, "Quantidade": 1, "Peso": 0.5}
     ])
-    params = {"B3": 12, "B18": 45, "B19": 20, "B20": 40, "B26": 0.8, "B31": 5, "B32": 6, "B33": 2, "B35": 5,
+    params = {"B18": 45, "B19": 20, "B20": 40, "B26": 0.8, "B31": 5, "B32": 6, "B33": 2, "B35": 5,
               "C41": 2, "C42": 21, "C43": 483}
     return t1, t2, params
 
 t1_init, t2_init, params_init = read_initial_tables(TEMPLATE_PATH)
 
 st.sidebar.header("Parâmetros gerais")
-B3 = st.sidebar.number_input("Chuveiro (quantidade por ramal)", value=float(params_init.get("B3", 12)))
 B18 = st.sidebar.number_input("Temperatura AQ (TAQ)", value=float(params_init.get("B18", 45)))
 B19 = st.sidebar.number_input("Temperatura AF (TAF)", value=float(params_init.get("B19", 20)))
 B20 = st.sidebar.number_input("Temperatura de uso (TAM)", value=float(params_init.get("B20", 40)))
@@ -134,7 +133,7 @@ C40 = 0 if B36 > 0 else -1 * B36
 C41 = st.sidebar.number_input("Aquecedor - Quantidade", value=float(params_init.get("C41", 2)))
 C42 = st.sidebar.number_input("Aquecedor - Vazão (L/min)", value=float(params_init.get("C42", 21)))
 C43 = st.sidebar.number_input("Aquecedor - Potência (kcal/min)", value=float(params_init.get("C43", 483)))
-C44 = (C43 * C41 / (B18 - B19) / B3) if (B18 - B19) != 0 and B3 != 0 else 0
+C44 = (C43 * C41 / (B18 - B19)) if (B18 - B19) != 0 else 0
 
 st.markdown("### Indicadores combinados")
 cols_comb = st.columns(3)
@@ -167,4 +166,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App com rótulos originais do Excel aplicado na barra lateral.")
+st.success("App atualizado: campo B3 removido e cálculos corrigidos.")
