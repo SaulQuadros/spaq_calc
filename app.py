@@ -158,8 +158,7 @@ with pd.ExcelWriter(output, engine="openpyxl") as writer:
         "Valor": [F6, F7, F13, F14, F15, B36, C44]
     })
     resumo.to_excel(writer, index=False, sheet_name="Resumo")
-    writer.save()
-    output.seek(0)
+output.seek(0)
 
 st.download_button(
     label="📥 Baixar resultados em Excel",
@@ -168,4 +167,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-st.success("App atualizado com coluna 'Peso total' bloqueada e linhas extras removidas.")
+st.success("App pronto para execução no Streamlit Cloud.")
